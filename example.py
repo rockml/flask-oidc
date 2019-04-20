@@ -24,8 +24,9 @@
 
 import json
 import logging
+import requests
 
-from flask import Flask, g
+from flask import Flask, g, request
 from flask_oidc import OpenIDConnect
 
 logging.basicConfig(level=logging.DEBUG)
@@ -35,10 +36,20 @@ app.config.update({
     'SECRET_KEY': 'SomethingNotEntirelySecret',
     'TESTING': True,
     'DEBUG': True,
+    'OIDC_SCOPES': [
+        "openid",
+        "email", 
+        "profile",
+        "launch/patient",
+        "veteran_status.read",
+        "patient/Patient.read"
+    ],
     'OIDC_CLIENT_SECRETS': 'client_secrets.json',
     'OIDC_ID_TOKEN_COOKIE_SECURE': False,
     'OIDC_REQUIRE_VERIFIED_EMAIL': False,
-    'OIDC_OPENID_REALM': 'http://localhost:5000/oidc_callback'
+    'OIDC_INSTROSPECTION_AUTH_METHOD': 'client_secret_basic',
+    'OIDC_RESOURCE_CHECK_AUD': True,
+    'OIDC_CALLBACK_ROUTE': '/varedirect'
 })
 oidc = OpenIDConnect(app)
 
@@ -57,9 +68,21 @@ def hello_world():
 @oidc.require_login
 def hello_me():
     info = oidc.user_getinfo(['email', 'openid_id'])
-    return ('Hello, %s (%s)! <a href="/">Return</a>' %
-            (info.get('email'), info.get('openid_id')))
+    token = oidc.get_access_token()
+    refresh = oidc.get_refresh_token()
+    tokenfile = open("accesstoken.txt", "w")
+    tokenfile.write(oidc.get_access_token())
+    tokenfile.close()
+    html = 'Token saved in accesstoken.txt</br><a href="/">Return</a></br></br>'
+    html += "Credentials: </br></br>" + str(oidc.credentials_store)
+    return html
 
+@app.route('/savetoken')
+def hello_save():
+    tokenfile = open("accesstoken.txt", "w")
+    tokenfile.write(oidc.get_access_token())
+    tokenfile.close()
+    return('Token saved in accesstoken.txt</br><a href="/">Return</a>')
 
 @app.route('/api')
 @oidc.accept_token(True, ['openid'])
@@ -72,6 +95,9 @@ def logout():
     oidc.logout()
     return 'Hi, you have been logged out! <a href="/">Return</a>'
 
+@app.route('/token')
+def retrieve_token():
+    return "Credentials: </br></br>" + str(oidc.credentials_store)
 
 if __name__ == '__main__':
     app.run()
