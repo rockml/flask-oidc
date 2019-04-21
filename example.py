@@ -38,7 +38,7 @@ app.config.update({
     'DEBUG': True,
     'OIDC_SCOPES': [
         "openid",
-        "email", 
+        "offline_access",
         "profile",
         "launch/patient",
         "veteran_status.read",
