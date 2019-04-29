@@ -7,3 +7,6 @@ coverage
 *.egg-info
 dist
 *.pyc
+*.ipynb
+accesstoken.txt
+settings.json
